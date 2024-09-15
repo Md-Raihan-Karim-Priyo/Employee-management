@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Employee</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+        body {
+                  display: flex;
+                  height: 100vh;
+                  overflow: hidden;
+              }
+              .sidebar {
+                  width: 200px;
+                  background-color: #343a40;
+                  color: white;
+                  display: flex;
+                  flex-direction: column;
+                  padding: 15px;
+              }
+              .sidebar a {
+                  color: white;
+                  text-decoration: none;
+                  margin: 10px 0;
+                  display: flex;
+                  align-items: center;
+              }
+              .sidebar a:hover {
+                  background-color: #495057;
+                  border-radius: 5px;
+              }
+              .sidebar a i {
+                  margin-right: 10px;
+              }
+             
+          </style>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div>
+            <a href="employees.html"><i class="fas fa-home"></i> <span class="icon">🏠</span> Home</a>
+            <a href="employees.html"><i class="fas fa-users"></i> <span class="icon">👥</span>Employees</a>
+            <a href="add_employee.html"><i class="fas fa-user-plus"></i> <span class="icon">➕</span>Add Employee</a>
+        </div>
+    </div>
+    <div class="container mt-5">
+        <h2>Add Employee</h2>
+        <form id="employeeForm" enctype="multipart/form-data" action="add_employee.php" method="POST">
+            <!-- Photo Upload -->
+            <div class="form-group">
+                <label for="photo">Photo</label>
+                <input type="file" class="form-control-file" id="photo" name="photo" required>
+            </div>
+            <!-- First Name -->
+            <div class="form-group">
+                <label for="firstName">First Name</label>
+                <input type="text" class="form-control" id="firstName" name="firstName" required>
+            </div>
+            <!-- Last Name -->
+            <div class="form-group">
+                <label for="lastName">Last Name</label>
+                <input type="text" class="form-control" id="lastName" name="lastName" required>
+            </div>
+            <!-- Email -->
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" class="form-control" id="email" name="email" required>
+            </div>
+            <!-- Mobile -->
+            <div class="form-group">
+                <label for="mobile">Mobile</label>
+                <input type="text" class="form-control" id="mobile" name="mobile" required>
+            </div>
+            <!-- Date of Birth -->
+            <div class="form-group">
+                <label for="dob">Date of Birth</label>
+                <input type="text" class="form-control" id="dob" name="dob" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+    </div>
+    <script>
+        // Initialize date picker using Flatpickr
+        flatpickr("#dob", {
+            dateFormat: "Y-m-d"
+        });
+
+        // Function to resize image client-side before upload
+        document.getElementById('photo').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = function () {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 300; // Set max width for image resizing
+                    const scaleSize = MAX_WIDTH / img.width;
+                    canvas.width = MAX_WIDTH;
+                    canvas.height = img.height * scaleSize;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                    canvas.toBlob(function (blob) {
+                        const resizedFile = new File([blob], file.name, { type: file.type });
+                        const dataTransfer = new DataTransfer();
+                        dataTransfer.items.add(resizedFile);
+                        document.getElementById('photo').files = dataTransfer.files;
+                    }, file.type);
+                };
+            };
+            reader.readAsDataURL(file);
+        });
+    </script>
+</body>
+</html>

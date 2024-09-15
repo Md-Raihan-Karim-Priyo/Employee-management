@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employees</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+  body {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .sidebar {
+            width: 200px;
+            background-color: #343a40;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+        }
+        .sidebar a {
+            color: white;
+            text-decoration: none;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+        }
+        .sidebar a:hover {
+            background-color: #495057;
+            border-radius: 5px;
+        }
+        .sidebar a i {
+            margin-right: 10px;
+        }
+        .content {
+            flex-grow: 1;
+            padding: 20px;
+            overflow: auto;
+        }
+        .search-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .search-bar input {
+            margin-right: 10px;
+        }
+        .footer {
+            background-color: #343a40;
+            color: white;
+            text-align: center;
+            padding: 10px 0;
+            position: absolute;
+            margin-top: 10px;
+            bottom: 0;
+            width: 100%;
+        }
+        .pagination-nav {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        .pagination-nav button {
+            margin: 0 10px;
+            margin-bottom: 5px;
+        }
+        th a {
+            cursor: pointer;
+        }
+        .action-buttons button {
+            margin-right: 5px;
+        }
+        /* Popup styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            max-height: 300px;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+        }
+        .modal-header {
+            margin-bottom: 10px;
+        }
+        .modal-footer {
+            display: flex;
+            justify-content: space-between;
+        }
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 5;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div>
+            <a href="employees.html"><i class="fas fa-home"></i> <span class="icon">🏠</span> Home</a>
+            <a href="employees.html"><i class="fas fa-users"></i> <span class="icon">👥</span>Employees</a>
+            <a href="add_employee.html"><i class="fas fa-user-plus"></i> <span class="icon">➕</span>Add Employee</a>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="content">
+        <!-- Search Bar Section -->
+        <div class="search-bar">
+            <input type="text" id="nameSearch" class="form-control" placeholder="Employee Name">
+            <input type="text" id="dobSearch" class="form-control" placeholder="Date of Birth">
+            <input type="email" id="emailSearch" class="form-control" placeholder="Email">
+            <input type="text" id="mobileSearch" class="form-control" placeholder="Mobile">
+            <button id="searchButton" class="btn btn-primary"><i class="fas fa-search"></i> Search</button>
+        </div>
+
+        <!-- Employee Table Section -->
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Photo</th>
+                    <th><a href="#" id="sortByName" data-sort="asc">Full Name</a></th>
+                    <th><a href="#" id="sortByEmail" data-sort="asc">Email</a></th>
+                    <th><a href="#" id="sortByMobile" data-sort="asc">Mobile</a></th>
+                    <th><a href="#" id="sortByDob" data-sort="asc">Date of Birth</a></th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="employeeTableBody">
+                <!-- Table rows will be dynamically inserted here using JavaScript -->
+            </tbody>
+        </table>
+
+        <!-- Pagination Section -->
+        <div class="pagination-nav">
+            <button id="prevPageButton" class="btn btn-primary">←</button>
+            <span id="pageNumbers"></span>
+            <button id="nextPageButton" class="btn btn-primary">→</button>
+        </div>
+
+        <!-- Footer Section -->
+        <div class="footer">
+        Copyright&copy; 2024
+        </div>
+    </div>
+
+         <!-- Confirmation Popup -->
+    <div class="modal" id="confirmDeleteModal">
+        <div class="modal-header">
+            <h5>Confirm Delete</h5>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete this employee?</p>
+        </div>
+        <div class="modal-footer">
+            <button id="confirmDeleteButton" class="btn btn-danger">Yes</button>
+            <button id="cancelDeleteButton" class="btn btn-secondary">No</button>
+        </div>
+    </div>
+    <div class="overlay" id="overlay"></div>
+
+    <script>
+        let currentPage = 1;
+        const itemsPerPage = 10;
+        let totalPages = 0;
+        let sortColumn = 'Full_Name';
+        let sortOrder = 'asc';
+        let emailToDelete = null;
+
+        function loadEmployees(page, searchParams = {}) {
+            $.ajax({
+                url: 'get_employees.php',
+                type: 'GET',
+                data: {
+                    page: page,
+                    per_page: itemsPerPage,
+                    sort_column: sortColumn,
+                    sort_order: sortOrder,
+                    ...searchParams
+                },
+                success: function (response) {
+                    const data = JSON.parse(response);
+                    const { employees, total } = data;
+                    totalPages = Math.ceil(total / itemsPerPage);
+
+                    $('#employeeTableBody').html('');
+                    employees.forEach(employee => {
+                        $('#employeeTableBody').append(`
+                            <tr>
+                                <td><img src="data:image/jpeg;base64,${employee.Photo}" width="50" height="50" alt="Employee Photo"></td>
+                                <td>${employee.Full_Name}</td>
+                                <td>${employee.Email}</td>
+                                <td>${employee.Mobile}</td>
+                                <td>${employee.Date_of_Birth}</td>
+                                <td class="action-buttons">
+                                    <button class="btn btn-warning" onclick="editEmployee('${employee.Email}')">Edit</button>
+                                    <button class="btn btn-danger" onclick="showDeleteModal('${employee.Email}')">Delete</button>
+                                </td>
+                            </tr>
+                        `);
+                    });
+
+                    renderPagination();
+                }
+            });
+        }
+
+        function renderPagination() {
+            const pageNumbers = $('#pageNumbers');
+            pageNumbers.html('');
+            for (let i = 1; i <= totalPages; i++) {
+                const pageButton = `<button class="btn ${i === currentPage ? 'btn-secondary' : 'btn-primary'}" onclick="gotoPage(${i})">${i}</button>`;
+                pageNumbers.append(pageButton);
+            }
+        }
+
+        function gotoPage(page) {
+            if (page > 0 && page <= totalPages) {
+                currentPage = page;
+                loadEmployees(currentPage);
+            }
+        }
+
+        $('#prevPageButton').click(function () {
+            if (currentPage > 1) {
+                gotoPage(currentPage - 1);
+            }
+        });
+
+        $('#nextPageButton').click(function () {
+            if (currentPage < totalPages) {
+                gotoPage(currentPage + 1);
+            }
+        });
+
+        $('#searchButton').click(function () {
+            const searchParams = {
+                name: $('#nameSearch').val(),
+                dob: $('#dobSearch').val(),
+                email: $('#emailSearch').val(),
+                mobile: $('#mobileSearch').val()
+            };
+            currentPage = 1;
+            loadEmployees(currentPage, searchParams);
+        });
+
+        // Sorting
+        $('th a').click(function () {
+            sortColumn = $(this).text().replace(' ', '_');
+            sortOrder = $(this).attr('data-sort');
+            $(this).attr('data-sort', sortOrder === 'asc' ? 'desc' : 'asc');
+            loadEmployees(currentPage);
+        });
+
+        // Show delete confirmation modal
+        function showDeleteModal(email) {
+            emailToDelete = email;
+            $('#overlay').show();
+            $('#confirmDeleteModal').show();
+        }
+
+
+        // Close the modal
+        $('#cancelDeleteButton').click(function () {
+            $('#overlay').hide();
+            $('#confirmDeleteModal').hide();
+            emailToDelete = null;
+        });
+
+        // Confirm delete action
+        $('#confirmDeleteButton').click(function () {
+            if (emailToDelete) {
+                $.ajax({
+                    url: 'delete_employee.php',
+                    type: 'POST',
+                    data: { email: emailToDelete },
+                    success: function () {
+                        $('#overlay').hide();
+                        $('#confirmDeleteModal').hide();
+                        loadEmployees(currentPage); // Reload employees
+                    },
+                    error: function () {
+                        alert('Failed to delete employee.');
+                    }
+                });
+            }
+        });
+
+
+        function editEmployee(email) {
+            window.location.href = `edit_employee.html?email=${email}`;
+        }
+
+        loadEmployees(currentPage);  // Load employees when the page is ready
+    </script>
+    <script src="https://kit.fontawesome.com/a076d05399.js"></script>
+</body>
+</html>
